@@ -1,0 +1,11 @@
+google-genai
+chromadb
+pandas
+numpy
+requests
+tqdm
+sentence-transformers
+onnxruntime
+pypdf
+qroq
+python-dotenv
