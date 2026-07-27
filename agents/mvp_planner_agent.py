@@ -1,486 +1,313 @@
-
-from services.gemini import generate
+import json
+from services.gemini import generate, generate_json
 from services.vector_store import retrieve_startups
 
 
 def retrieve_yc_context(startup_context):
-
     query = f"""
-    {startup_context['problem']}
-    {startup_context['solution']}
-    {startup_context['target_users']}
+    {startup_context.get('problem_statement') or startup_context.get('problem', '')}
+    {startup_context.get('solution', '')}
+    {startup_context.get('target_users', '')}
     """
-
-    return retrieve_startups(
-        query=query,
-        n_results=5
-    )
+    return retrieve_startups(query=query, n_results=5)
 
 
-def startup_feature_agent(
-    startup_context,
-    yc_docs
-):
+# ==========================================
+# FIX 2: BATCHED PROMPTS (14 calls -> 4 calls)
+# ==========================================
 
-    docs_text = "\n\n".join(yc_docs)
+def batch_product_spec(startup_context, yc_docs):
+    """
+    BATCH 1 of 4: Combines Features + Tech Stack + DB Schema + REST APIs into a single LLM call.
+    Reduces token overhead from 4 separate prompt headers/contexts to 1.
+    """
+    docs_text = "\n\n".join([doc for doc in yc_docs if isinstance(doc, str)])[:2000]
 
     prompt = f"""
-You are an elite startup CTO.
+You are a full-stack startup architect. Given the startup below, produce a complete product specification.
 
 Startup:
-{startup_context}
+{json.dumps(startup_context, indent=2)}
 
-Similar YC Startups:
+Similar YC Startups (for reference):
 {docs_text}
 
-Generate:
+Tech Stack Preferences: Python, FastAPI, PostgreSQL, ChromaDB.
+Optimize for: solo founder, low budget, fast MVP, high scalability.
+Avoid enterprise tools, expensive services, and NodeJS unless necessary.
 
-1. MVP Features
-2. Premium Features
-3. Differentiators
-4. Competitive Advantages
+Return a single JSON object with EXACTLY these top-level keys:
 
-Return ONLY valid JSON.
+"features": {{
+  "mvp_features": [list of strings],
+  "premium_features": [list of strings],
+  "differentiators": [list of strings],
+  "competitive_advantages": [list of strings]
+}}
+
+"tech_stack": {{
+  "frontend": string,
+  "backend": string,
+  "database": string,
+  "vector_db": string,
+  "ai_models": string,
+  "architecture_notes": string
+}}
+
+"database": {{
+  "tables": [
+    {{
+      "table_name": string,
+      "columns": [list of strings],
+      "relationships": string
+    }}
+  ]
+}}
+
+"apis": {{
+  "endpoints": [
+    {{
+      "method": string,
+      "path": string,
+      "description": string,
+      "request_body": object,
+      "response": object
+    }}
+  ]
+}}
+
+Return ONLY valid JSON. Do NOT include markdown fences.
 """
+    result = generate_json(prompt, expected_type=dict, temperature=0.4)
 
-    return generate(prompt)
+    features = result.get("features", {})
+    tech_stack = result.get("tech_stack", {})
+    database = result.get("database", {})
+    if isinstance(database, dict):
+        database = database.get("tables", [])
+    apis = result.get("apis", {})
+    if isinstance(apis, dict):
+        apis = apis.get("endpoints", [])
+
+    return features, tech_stack, database, apis
 
 
-def tech_stack_agent(
-    startup_context,
-    yc_docs
-):
-
-    docs_text = "\n\n".join(
-        yc_docs
-    )
-
+def batch_execution_plan(startup_context, features):
+    """
+    BATCH 2 of 4: Combines UI Design + 4-Week Roadmap + Cost Estimate into a single LLM call.
+    All costs are in Indian Rupees (INR) — realistic for an Indian solo bootstrapped founder.
+    """
     prompt = f"""
-You are a principal startup architect.
+You are a senior product manager and startup financial advisor based in India.
 
 Startup:
-{startup_context}
+{json.dumps(startup_context, indent=2)}
 
-Similar YC Startups:
-{docs_text}
+MVP Features:
+{json.dumps(features, indent=2)}
 
-Prioritize:
+IMPORTANT: All cost values MUST be in Indian Rupees (INR ₹). Use realistic Indian market rates.
+Typical Indian market rates for reference:
+- Freelance developer: ₹500-₹2000/hour
+- VPS Hosting (DigitalOcean/Railway): ₹800-₹3000/month
+- Groq/OpenAI API: ₹2000-₹8000/month for moderate usage
+- Domain + misc: ₹500-₹1500/month
 
-- Python
-- FastAPI
-- PostgreSQL
-- ChromaDB
+Return a single JSON object with EXACTLY these top-level keys:
 
-Optimize for:
+"ui": {{
+  "pages": [
+    {{
+      "page_name": string,
+      "components": [list of strings],
+      "user_flow": string
+    }}
+  ]
+}}
 
-- Solo founder
-- Low budget
-- Fast MVP
-- High scalability
+"roadmap": {{
+  "weeks": [
+    {{
+      "week": integer (1 to 4),
+      "goals": [list of strings],
+      "deliverables": [list of strings]
+    }}
+  ]
+}}
 
-Avoid enterprise tools.
-Avoid expensive services.
-Avoid NodeJS unless necessary.
+"costs": {{
+  "currency": "INR",
+  "development_cost_inr": integer (upfront one-time dev cost in ₹),
+  "monthly_hosting_cost_inr": integer (server/hosting in ₹/month),
+  "monthly_ai_cost_inr": integer (AI API calls in ₹/month),
+  "monthly_misc_cost_inr": integer (domain, tools, services in ₹/month),
+  "total_monthly_cost_inr": integer (sum of all monthly costs in ₹),
+  "cost_breakdown": object (key-value pairs with ₹ amounts and descriptions),
+  "notes": string (any important cost assumptions)
+}}
 
-Return ONLY valid JSON.
+Return ONLY valid JSON. Do NOT include markdown fences.
 """
+    result = generate_json(prompt, expected_type=dict, temperature=0.4)
 
-    return generate(prompt)
+    ui = result.get("ui", {})
+    if isinstance(ui, dict):
+        ui = ui.get("pages", [])
+    roadmap = result.get("roadmap", {})
+    if isinstance(roadmap, dict):
+        roadmap = roadmap.get("weeks", [])
+    costs = result.get("costs", {})
 
-def database_agent(
-    startup_context,
-    features
-):
+    return ui, roadmap, costs
 
+
+def batch_risk_and_fit(startup_context, features, roadmap, tech_stack, user_profile):
+    """
+    BATCH 3 of 4: Combines Risk Analysis + Founder Fit + Buildability + Investor Readiness into one call.
+    """
     prompt = f"""
+You are a startup risk analyst, talent evaluator, CTO, and investor readiness coach.
+
 Startup:
-{startup_context}
+{json.dumps(startup_context, indent=2)}
 
-Features:
-{features}
-
-Design database schema.
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def api_agent(
-    startup_context,
-    features
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Features:
-{features}
-
-Generate REST APIs.
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def ui_agent(
-    startup_context,
-    features
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Features:
-{features}
-
-Design UI.
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def roadmap_agent(
-    startup_context,
-    features
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Features:
-{features}
-
-Create 4 week roadmap.
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def cost_agent(
-    startup_context,
-    tech_stack
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Tech Stack:
-{tech_stack}
-
-Estimate:
-
-1. Development Cost
-2. Monthly Cost
-3. AI Cost
-4. Hosting Cost
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def risk_agent(
-    startup_context,
-    features,
-    roadmap
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Features:
-{features}
+MVP Features:
+{json.dumps(features, indent=2)}
 
 Roadmap:
-{roadmap}
-
-Analyze:
-
-1. Technical Risks
-2. Product Risks
-3. Market Risks
-4. Scaling Risks
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def founder_fit_agent(
-    startup_context
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Evaluate:
-
-1. Founder Market Fit Score
-2. Strengths
-3. Weaknesses
-4. Recommendations
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def buildability_agent(
-    startup_context,
-    features,
-    tech_stack,
-    user_profile
-):
-
-    prompt = f"""
-You are a senior startup CTO evaluating whether a founder can realistically build this startup.
-
-Startup:
-{startup_context}
-
-Features:
-{features}
+{json.dumps(roadmap, indent=2)}
 
 Tech Stack:
-{tech_stack}
+{json.dumps(tech_stack, indent=2)}
 
 Founder Profile:
-{user_profile}
+{json.dumps(user_profile, indent=2)}
 
-Evaluate based on:
+Return a single JSON object with EXACTLY these top-level keys:
 
-1. Founder Skills
-2. Experience Level
-3. Budget Constraints
-4. Technical Complexity
-5. Team Requirements
+"risks": {{
+  "technical_risks": [list of strings],
+  "product_risks": [list of strings],
+  "market_risks": [list of strings],
+  "scaling_risks": [list of strings],
+  "mitigation_strategies": [list of strings]
+}}
 
-Generate:
+"founder_fit": {{
+  "founder_market_fit_score": integer (0-100),
+  "strengths": [list of strings],
+  "weaknesses": [list of strings],
+  "recommendations": [list of strings]
+}}
 
-1. Buildability Score (1-10)
-2. Time To MVP
-3. Recommended Team Size
-4. Technical Difficulty
-5. Biggest Technical Challenges
-6. Biggest Founder Challenges
-7. Recommended MVP Scope
-8. Build Recommendation
+"buildability": {{
+  "buildability_score": integer (1-10),
+  "time_to_mvp_weeks": integer,
+  "recommended_team_size": integer,
+  "technical_difficulty": string ("Low", "Medium", "High", or "Extreme"),
+  "biggest_technical_challenges": [list of strings],
+  "biggest_founder_challenges": [list of strings],
+  "recommended_mvp_scope": string,
+  "build_recommendation": string ("YES", "NO", or "MODIFY")
+}}
 
-Scoring Criteria:
+"investor_readiness": {{
+  "investor_readiness_score": integer (0-100),
+  "strengths": [list of strings],
+  "weaknesses": [list of strings],
+  "funding_potential": string
+}}
 
-- Skills Match
-- Experience Match
-- Budget Fit
-- Development Complexity
-- Speed To Launch
-
-Return ONLY valid JSON.
+Return ONLY valid JSON. Do NOT include markdown fences.
 """
+    result = generate_json(prompt, expected_type=dict, temperature=0.4)
 
-    return generate(prompt)
+    risks = result.get("risks", {})
+    founder_fit = result.get("founder_fit", {})
+    buildability = result.get("buildability", {})
+    investor_readiness = result.get("investor_readiness", {})
+
+    return risks, founder_fit, buildability, investor_readiness
 
 
-def investor_readiness_agent(
-    startup_context,
-    risks
-):
-
+def batch_strategy(startup_context, founder_fit, investor_readiness):
+    """
+    BATCH 4 of 4: Combines Revenue Strategy + Launch Strategy + Success Probability into one call.
+    """
     prompt = f"""
+You are a growth strategist and startup quantitative analyst.
+
 Startup:
-{startup_context}
-
-Risks:
-{risks}
-
-Evaluate:
-
-1. Investor Readiness Score
-2. Strengths
-3. Weaknesses
-4. Funding Potential
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def revenue_strategy_agent(
-    startup_context
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Generate:
-
-1. Revenue Model
-2. Pricing
-3. Monetization Strategy
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-
-def launch_strategy_agent(
-    startup_context
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
-
-Generate:
-
-1. First 100 Users Plan
-2. Marketing Channels
-3. Growth Strategy
-
-Return ONLY valid JSON.
-"""
-
-    return generate(prompt)
-
-def success_probability_agent(
-    startup_context,
-    founder_fit,
-    investor_readiness
-):
-
-    prompt = f"""
-Startup:
-{startup_context}
+{json.dumps(startup_context, indent=2)}
 
 Founder Fit:
-{founder_fit}
+{json.dumps(founder_fit, indent=2)}
 
 Investor Readiness:
-{investor_readiness}
+{json.dumps(investor_readiness, indent=2)}
 
-Evaluate:
+Return a single JSON object with EXACTLY these top-level keys:
 
-1. Success Probability (0-100)
-2. Biggest Opportunity
-3. Biggest Risk
-4. Recommendation
+"revenue_strategy": {{
+  "revenue_model": string,
+  "pricing_tiers": [
+    {{
+      "tier": string,
+      "price": number,
+      "features": [list of strings]
+    }}
+  ],
+  "monetization_strategy": string
+}}
 
-Return ONLY valid JSON.
+"launch_strategy": {{
+  "first_100_users_plan": [list of strings],
+  "marketing_channels": [list of strings],
+  "growth_strategy": string
+}}
+
+"success_probability": {{
+  "success_probability_score": integer (0-100),
+  "biggest_opportunity": string,
+  "biggest_risk": string,
+  "recommendation": string
+}}
+
+Return ONLY valid JSON. Do NOT include markdown fences.
 """
+    result = generate_json(prompt, expected_type=dict, temperature=0.4)
 
-    return generate(prompt)
+    revenue_strategy = result.get("revenue_strategy", {})
+    launch_strategy = result.get("launch_strategy", {})
+    success_probability = result.get("success_probability", {})
 
-def mvp_planner_agent(
-    startup_idea,
-    user_profile
-):
+    return revenue_strategy, launch_strategy, success_probability
 
-    print("Retrieving YC Startups...")
+
+# ==========================================
+# MASTER AGENT (Now uses 4 batched calls instead of 14)
+# ==========================================
+
+def mvp_planner_agent(startup_idea, user_profile):
+    print("\n[Agent 3] Retrieving YC Context...")
     yc_docs = retrieve_yc_context(startup_idea)
 
-    print("Generating Features...")
-    features = startup_feature_agent(
-        startup_idea,
-        yc_docs
+    print("[Agent 3] BATCH 1/4 — Product Spec (Features + Tech Stack + DB Schema + APIs)...")
+    features, tech_stack, database, apis = batch_product_spec(startup_idea, yc_docs)
+
+    print("[Agent 3] BATCH 2/4 — Execution Plan (UI Design + Roadmap + Cost Estimate)...")
+    ui, roadmap, costs = batch_execution_plan(startup_idea, features)
+
+    print("[Agent 3] BATCH 3/4 — Risk & Fit (Risks + Founder Fit + Buildability + Investor Readiness)...")
+    risks, founder_fit, buildability, investor_readiness = batch_risk_and_fit(
+        startup_idea, features, roadmap, tech_stack, user_profile
     )
 
-    print("Designing Tech Stack...")
-    tech_stack = tech_stack_agent(
-        startup_idea,
-        yc_docs
+    print("[Agent 3] BATCH 4/4 — Strategy (Revenue + Launch + Success Probability)...")
+    revenue_strategy, launch_strategy, success_probability = batch_strategy(
+        startup_idea, founder_fit, investor_readiness
     )
 
-    print("Designing Database...")
-    database = database_agent(
-        startup_idea,
-        features
-    )
-
-    print("Generating APIs...")
-    apis = api_agent(
-        startup_idea,
-        features
-    )
-
-    print("Designing UI...")
-    ui = ui_agent(
-        startup_idea,
-        features
-    )
-
-    print("Creating Roadmap...")
-    roadmap = roadmap_agent(
-        startup_idea,
-        features
-    )
-
-    print("Estimating Costs...")
-    costs = cost_agent(
-        startup_idea,
-        tech_stack
-    )
-
-    print("Analyzing Risks...")
-    risks = risk_agent(
-        startup_idea,
-        features,
-        roadmap
-    )
-
-    print("Founder Fit...")
-    founder_fit = founder_fit_agent(
-        startup_idea
-    )
-
-    print("Buildability...")
-    buildability = buildability_agent(
-    startup_idea,
-    features,
-    tech_stack,
-    user_profile
-    )
-
-    print("Investor Readiness...")
-    investor_readiness = investor_readiness_agent(
-        startup_idea,
-        risks
-    )
-
-    print("Revenue Strategy...")
-    revenue_strategy = revenue_strategy_agent(
-        startup_idea
-    )
-
-    print("Launch Strategy...")
-    launch_strategy = launch_strategy_agent(
-        startup_idea
-    )
-    print("Success Probability...")
-
-    success_probability = success_probability_agent(
-    startup_idea,
-    founder_fit,
-    investor_readiness
-)
     return {
         "yc_startups": yc_docs,
         "features": features,
@@ -496,60 +323,26 @@ def mvp_planner_agent(
         "investor_readiness": investor_readiness,
         "revenue_strategy": revenue_strategy,
         "launch_strategy": launch_strategy,
-        "success_probability": success_probability
+        "success_probability": success_probability,
     }
 
 
 if __name__ == "__main__":
-
     startup = {
         "startup_name": "AdaptaLearn",
         "problem": "Students receive generic learning experiences",
         "solution": "AI powered adaptive learning",
-        "target_users": "Students and Teachers"
+        "target_users": "Students and Teachers",
     }
 
     user_profile = {
+        "skills": "Python, React",
+        "experience": "Student",
+        "budget": "Low",
+    }
 
-    "skills":
-    "Python, React",
-
-    "experience":
-    "Student",
-
-    "budget":
-    "Low"
-}
-
-    result = mvp_planner_agent(
-    startup,
-    user_profile
-)
-
-    print("\nRetrieved YC Startups:\n")
-
-    for doc in result["yc_startups"]:
-
-        try:
-
-            name = (
-                doc
-                .split("Startup Name:")[1]
-                .split("Industries:")[0]
-                .strip()
-            )
-
-            print("•", name)
-
-        except:
-
-            pass
+    result = mvp_planner_agent(startup, user_profile)
 
     for key, value in result.items():
-
-        print("\n")
-        print("=" * 80)
-        print(key.upper())
-        print("=" * 80)
-
-        print(value)
+        print(f"\n{'='*60}\n{key.upper()}\n{'='*60}")
+        print(json.dumps(value, indent=2) if isinstance(value, (dict, list)) else value)
