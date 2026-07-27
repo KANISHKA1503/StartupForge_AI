@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KiranaIQ — Investor Pitch Deck</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0a1a;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0f3460 100%);
+      padding: 60px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(233,69,96,0.15) 0%, transparent 70%);
+      top: -100px; right: -100px;
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(0,180,216,0.12) 0%, transparent 70%);
+      bottom: -80px; left: -80px;
+      border-radius: 50%;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(233,69,96,0.15);
+      border: 1px solid rgba(233,69,96,0.4);
+      color: #e94560;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 8px 20px;
+      border-radius: 100px;
+      margin-bottom: 32px;
+      position: relative; z-index: 1;
+    }
+    .hero-name {
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 800;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #fff 0%, #e94560 50%, #00b4d8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      position: relative; z-index: 1;
+    }
+    .hero-tagline {
+      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      color: rgba(255,255,255,0.6);
+      font-weight: 300;
+      max-width: 700px;
+      margin: 24px auto 0;
+      line-height: 1.6;
+      position: relative; z-index: 1;
+    }
+    .hero-scroll {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      z-index: 1;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ── SLIDES ── */
+    .slides-container {
+      display: flex;
+      flex-direction: column;
+    }
+    .slide {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 80px 10%;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, currentColor, transparent);
+      opacity: 0.3;
+    }
+    .slide-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 900px;
+    }
+    .slide-number {
+      font-size: 5rem;
+      font-weight: 800;
+      opacity: 0.12;
+      line-height: 1;
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+    .slide-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 48px;
+      line-height: 1.1;
+    }
+    .bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .bullets li {
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      color: rgba(255,255,255,0.85);
+      font-weight: 400;
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 24px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.2s ease;
+    }
+    .bullets li:hover {
+      background: rgba(255,255,255,0.07);
+      transform: translateX(4px);
+    }
+    .bullet-dot {
+      font-size: 1.1rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.3);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    .footer-name { text-transform: uppercase; letter-spacing: 2px; }
+
+    /* ── THANK YOU ── */
+    .thankyou {
+      min-height: 60vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(135deg, #0a0a1a, #1a1a2e);
+      padding: 80px 40px;
+    }
+    .thankyou h2 {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #e94560, #00b4d8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .thankyou p {
+      color: rgba(255,255,255,0.4);
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+    .generated-tag {
+      margin-top: 48px;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO COVER SLIDE -->
+  <section class="hero">
+    <div class="hero-badge">Investor Pitch Deck</div>
+    <h1 class="hero-name">KiranaIQ</h1>
+    <p class="hero-tagline">Revolutionizing kirana stores with AI</p>
+    <div class="hero-scroll">↓ scroll</div>
+  </section>
+
+  <!-- CONTENT SLIDES -->
+  <div class="slides-container">
+
+        <div class="slide" style="background:#1a1a2e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#e94560;">01</div>
+                <h2 class="slide-title" style="color:#e94560;">Problem</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#e94560">▸</span>20% revenue loss due to stockouts and overstock</li><li><span class="bullet-dot" style="color:#e94560">▸</span>Manual inventory management is time-consuming and inefficient</li><li><span class="bullet-dot" style="color:#e94560">▸</span>Small kirana stores lack data-driven insights</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">1 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#16213e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#00b4d8;">02</div>
+                <h2 class="slide-title" style="color:#00b4d8;">Solution</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#00b4d8">▸</span>AI-powered demand forecasting for accurate predictions</li><li><span class="bullet-dot" style="color:#00b4d8">▸</span>Smart reorder alerts via WhatsApp for ease of use</li><li><span class="bullet-dot" style="color:#00b4d8">▸</span>Inventory tracking and management for real-time visibility</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">2 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#0f3460;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#7b2d8b;">03</div>
+                <h2 class="slide-title" style="color:#7b2d8b;">Why Now</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#7b2d8b">▸</span>Growing smartphone penetration in India: 750 million users</li><li><span class="bullet-dot" style="color:#7b2d8b">▸</span>Increasing competition in the retail sector: 12 million kirana stores</li><li><span class="bullet-dot" style="color:#7b2d8b">▸</span>AI-powered inventory management is a necessity: 85/100 market demand score</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">3 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#1a1a2e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#f0a500;">04</div>
+                <h2 class="slide-title" style="color:#f0a500;">Market Opportunity</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#f0a500">▸</span>12 million kirana stores in India: a $500 billion market</li><li><span class="bullet-dot" style="color:#f0a500">▸</span>Opportunity score: 80/100, indicating high potential</li><li><span class="bullet-dot" style="color:#f0a500">▸</span>Growing demand for AI-powered inventory management solutions: 80% success probability</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">4 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#16213e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#06d6a0;">05</div>
+                <h2 class="slide-title" style="color:#06d6a0;">Target Market</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#06d6a0">▸</span>Small kirana store owners and managers in Tier 2 and Tier 3 cities</li><li><span class="bullet-dot" style="color:#06d6a0">▸</span>Primary customer: small kirana store owners in India, 80/100 founder-market fit</li><li><span class="bullet-dot" style="color:#06d6a0">▸</span>Beachhead market: 200,000 stores in Tier 2 and Tier 3 cities</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">5 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#0f3460;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#118ab2;">06</div>
+                <h2 class="slide-title" style="color:#118ab2;">Product Demo</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#118ab2">▸</span>Basic AI demand forecasting for accurate predictions</li><li><span class="bullet-dot" style="color:#118ab2">▸</span>WhatsApp integration for smart reorder alerts and ease of use</li><li><span class="bullet-dot" style="color:#118ab2">▸</span>Simple and intuitive interface for easy adoption</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">6 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#1a1a2e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#e94560;">07</div>
+                <h2 class="slide-title" style="color:#e94560;">Competitive Advantage</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#e94560">▸</span>AI-powered demand forecasting for accurate predictions</li><li><span class="bullet-dot" style="color:#e94560">▸</span>WhatsApp integration for ease of use and wide reach</li><li><span class="bullet-dot" style="color:#e94560">▸</span>Simple and intuitive interface for easy adoption: 80/100 founder-market fit</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">7 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#16213e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#00b4d8;">08</div>
+                <h2 class="slide-title" style="color:#00b4d8;">Business Model</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#00b4d8">▸</span>B2B SaaS subscription model: ₹500/mo basic, $1000/mo premium</li><li><span class="bullet-dot" style="color:#00b4d8">▸</span>Partner with local wholesalers and distributors for wide reach</li><li><span class="bullet-dot" style="color:#00b4d8">▸</span>Revenue potential: ₹1 billion in the first year, growing to ₹5 billion by year 3</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">8 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#0f3460;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#7b2d8b;">09</div>
+                <h2 class="slide-title" style="color:#7b2d8b;">Financial Projections</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#7b2d8b">▸</span>Monthly burn: ₹8,000, dev cost: ₹300,000</li><li><span class="bullet-dot" style="color:#7b2d8b">▸</span>Break-even point: 6 months after launch, ₹1 million revenue</li><li><span class="bullet-dot" style="color:#7b2d8b">▸</span>Gross margin: 80%, net profit: ₹500,000 by the end of year 1</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">9 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#1a1a2e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#f0a500;">010</div>
+                <h2 class="slide-title" style="color:#f0a500;">Traction & Validation</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#f0a500">▸</span>Market demand score: 85/100, indicating high demand</li><li><span class="bullet-dot" style="color:#f0a500">▸</span>Opportunity score: 80/100, indicating high potential</li><li><span class="bullet-dot" style="color:#f0a500">▸</span>Founder-market fit: 80/100, indicating strong understanding of the market</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">10 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#16213e;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#06d6a0;">011</div>
+                <h2 class="slide-title" style="color:#06d6a0;">Go-to-Market Strategy</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#06d6a0">▸</span>Partner with local wholesalers and distributors for wide reach</li><li><span class="bullet-dot" style="color:#06d6a0">▸</span>Target 200,000 stores in Tier 2 and Tier 3 cities for the beachhead market</li><li><span class="bullet-dot" style="color:#06d6a0">▸</span>Invest ₹500,000 in marketing and sales for the first year</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">11 / 12</span>
+            </div>
+        </div>
+
+        <div class="slide" style="background:#0f3460;">
+            <div class="slide-inner">
+                <div class="slide-number" style="color:#118ab2;">012</div>
+                <h2 class="slide-title" style="color:#118ab2;">Investment Ask</h2>
+                <ul class="bullets"><li><span class="bullet-dot" style="color:#118ab2">▸</span>Seeking ₹2 million in funding for 10% equity</li><li><span class="bullet-dot" style="color:#118ab2">▸</span>Investment will be used for product development, marketing, and sales</li><li><span class="bullet-dot" style="color:#118ab2">▸</span>Expected return on investment: 5x in 5 years, ₹10 million</li></ul>
+            </div>
+            <div class="slide-footer">
+                <span class="footer-name">KiranaIQ</span>
+                <span class="footer-slide">12 / 12</span>
+            </div>
+        </div>
+
+  </div>
+
+  <!-- THANK YOU -->
+  <section class="thankyou">
+    <h2>Thank You</h2>
+    <p>KiranaIQ · Revolutionizing kirana stores with AI</p>
+    <div class="generated-tag">Generated by HackArena 2.0 · Autonomous Startup AI</div>
+  </section>
+
+</body>
+</html>
